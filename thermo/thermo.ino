@@ -22,11 +22,13 @@ Timer t;
 
 ESP8266WebServer httpServer(80);
 
+const String device_id       = "Thermo1";       // Device indentification
+const String host_prefix     = "ESP8266";      // Hostname prefix
 String host;
 
 void setup(void)
 {
-  // start serial port
+  // initialize serial port
   Serial.begin(9600);
   Serial.println("Dallas Temperature IC Control");
 
@@ -35,6 +37,11 @@ void setup(void)
   dallas.begin();
   dallas.getAddress(sensorDeviceAddress, 0);
   dallas.setResolution(sensorDeviceAddress, SENSOR_RESOLUTION);
+
+  //Hostname
+  host = host_prefix + device_id;
+  host.toLowerCase();
+  Serial.println("Device hostname is " + host);
 
   // WiFi manager
   Serial.println("Initialize WiFi manager...");
@@ -46,10 +53,12 @@ void setup(void)
 
   //Timer
   t.every(1000, takeReading);
+  t.every(100, handleHttpClient);
 }
 
 void setupWifi()
 {
+  //wifiManager.resetSettings();  // this can be used to reset rembembered SID
   WiFiManager wifiManager;
   wifiManager.setTimeout(300);
   wifiManager.autoConnect("ESP8266 Settings");
@@ -86,7 +95,9 @@ void takeReading() {
   Serial.println("Dallas | Measured data: " + String(dallas1) + "°C");
 }
 
-
+void handleHttpClient() {
+  httpServer.handleClient();
+}
 void readDallas(float &dallas1)
 {
   // call sensors.requestTemperatures() to issue a global temperature 
