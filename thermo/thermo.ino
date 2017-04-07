@@ -9,7 +9,9 @@
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 5
 // How many bits to use for temperature values: 9, 10, 11 or 12
-#define SENSOR_RESOLUTION 9
+#define SENSOR_RESOLUTION 12
+
+#define DALLAS_MAX_DEVICES 5
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -25,6 +27,8 @@ ESP8266WebServer httpServer(80);
 const String device_id       = "Thermo1";       // Device indentification
 const String host_prefix     = "ESP8266";      // Hostname prefix
 String host;
+int dallasCount              = 0; // number of available dallas sensors
+DeviceAddress dallasAddress[DALLAS_MAX_DEVICES];
 
 void setup(void)
 {
@@ -33,27 +37,51 @@ void setup(void)
   Serial.println("Dallas Temperature IC Control");
 
   // Dallas
-  Serial.println("Initialize Dallas sensors ...");
-  dallas.begin();
-  dallas.getAddress(sensorDeviceAddress, 0);
-  dallas.setResolution(sensorDeviceAddress, SENSOR_RESOLUTION);
-
+  setupDallas();
+  
   //Hostname
   host = host_prefix + device_id;
   host.toLowerCase();
   Serial.println("Device hostname is " + host);
 
   // WiFi manager
-  Serial.println("Initialize WiFi manager...");
-  setupWifi();
+  //Serial.println("Initialize WiFi manager...");
+  //setupWifi();
 
   // Http Server
   Serial.println("Initialize WebServer...");
   setupWebServer();
 
   //Timer
-  t.every(1000, takeReading);
+  t.every(5000, takeReading);
   t.every(100, handleHttpClient);
+}
+
+void setupDallas()
+{
+  Serial.println("Initialize Dallas devices ...");
+  dallas.begin();
+  
+  Serial.print("..found ");
+  dallasCount = dallas.getDeviceCount();
+  Serial.print(dallasCount, DEC); 
+  Serial.println(" devices");
+
+  if (dallasCount > DALLAS_MAX_DEVICES) {
+    Serial.print("..too many devices found, truncating to ");
+    Serial.println(DALLAS_MAX_DEVICES);
+    dallasCount = DALLAS_MAX_DEVICES;
+  }
+
+  for (int i = 0; i < dallasCount; i++)
+  {
+    Serial.print("..initialize dallas device ");
+    Serial.println(i);
+    Serial.print("..");
+    dallas.getAddress(dallasAddress[i], i);
+    dallas.setResolution(dallasAddress[i], SENSOR_RESOLUTION);
+    dallasPrintAddress(dallasAddress[i]);
+  }
 }
 
 void setupWifi()
@@ -87,33 +115,34 @@ void loop(void)
   t.update();
 }
 
-void takeReading() {
-
-  float dallas1;
-  readDallas(dallas1);
+void takeReading()
+{
+  float dallasTemp[DALLAS_MAX_DEVICES];
+  dallasRead(dallasTemp);
   
-  Serial.println("Dallas | Measured data: " + String(dallas1) + "°C");
+  Serial.println("Dallas measured data:");
+  for (int i = 0; i < dallasCount; i++)
+  {
+    Serial.print(".. ");
+    dallasPrintAddress(dallasAddress[i]);
+    Serial.println(": " + String(dallasTemp[i]) + "°C");
+  }
 }
 
 void handleHttpClient() {
   httpServer.handleClient();
 }
-void readDallas(float &dallas1)
+void dallasRead(float *temp)
 {
   // call sensors.requestTemperatures() to issue a global temperature 
   // request to all devices on the bus
-  Serial.println("Requesting temperatures...");
-
   dallas.requestTemperatures();
-  dallas1 = dallas.getTempCByIndex(0);
-
-  if (dallas1 == -127) dallas1 = NAN;
-
-  if (dallas1 == NAN)
+  
+  for (int i = 0; i < dallasCount; i++)
   {
-    Serial.println("Failed to read from Dallas sensor!");
-    return;
-  }  
+    temp[i] = dallas.getTempCByIndex(i);
+    if (temp[i] == -127) temp[i] = NAN;
+  }
 }
 
 String deviceStatus()
@@ -148,10 +177,14 @@ String deviceStatus()
     info += ("<br />");
 
     Serial.println();
-    float dallas1;
-    readDallas(dallas1);
-    
-    info += ("<b>DS18B20 Readings:</b> " + String(dallas1) + "&#8451;<br />");
+
+    float dallasTemp[DALLAS_MAX_DEVICES];
+    dallasRead(dallasTemp);
+  
+    for (int i = 0; i < dallasCount; i++)
+    {
+      info += ("<b>DS18B20 Readings for device " + String(i) + ":</b> " + String(dallasTemp[i]) + "&#8451;<br />");
+    }
 
     info += ("</body></html>");
 
@@ -170,3 +203,15 @@ String mac2String(byte ar[])
   }
   return s;
 }
+
+// function to print a dallas device address
+void dallasPrintAddress(DeviceAddress deviceAddress)
+{
+  for (uint8_t i = 0; i < 8; i++)
+  {
+    // zero pad the address if necessary
+    if (deviceAddress[i] < 16) Serial.print("0");
+    Serial.print(deviceAddress[i], HEX);
+  }
+}
+
