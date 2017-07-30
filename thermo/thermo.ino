@@ -1,3 +1,21 @@
+#include <LiquidCrystal.h>
+
+#include <Wire.h>
+
+#include <LiquidCrystal_I2C.h> // hacked version of https://github.com/agnunez/ESP8266-I2C-LCD1602 (begin uses default arguments passed to Wire.begin())
+
+#include <DNSServer.h>
+
+#include <ESP8266WiFiAP.h>
+#include <ESP8266WiFiScan.h>
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
+#include <ESP8266WiFi.h>
+#include <WiFiServer.h>
+#include <ESP8266WiFiGeneric.h>
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiType.h>
+
 //#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
@@ -7,7 +25,7 @@
 #include <WiFiManager.h>
 
 // Data wire is plugged into port 2 on the Arduino
-#define ONE_WIRE_BUS 5
+#define ONE_WIRE_BUS 0
 // How many bits to use for temperature values: 9, 10, 11 or 12
 #define SENSOR_RESOLUTION 12
 
@@ -30,13 +48,28 @@ String host;
 int dallasCount              = 0; // number of available dallas sensors
 DeviceAddress dallasAddress[DALLAS_MAX_DEVICES];
 
+// Construct an LCD object and pass it the 
+// I2C address, width (in characters) and
+// height (in characters). Depending on the
+// Actual device, the IC2 address may change.
+LiquidCrystal_I2C lcd(0x27, 20, 4);
+
 void setup(void)
 {
   // initialize serial port
   Serial.begin(9600);
   Serial.println("Dallas Temperature IC Control");
 
+  // initialize display
+  lcd.begin();
+  //lcd.init();
+  lcd.backlight();
+  //lcd.noBacklight();
+  lcd.clear(); lcd.home();
+  
   // Dallas
+  lcd.clear(); lcd.home();
+  lcd.print("Init Dallas");
   setupDallas();
   
   //Hostname
@@ -45,10 +78,14 @@ void setup(void)
   Serial.println("Device hostname is " + host);
 
   // WiFi manager
-  //Serial.println("Initialize WiFi manager...");
-  //setupWifi();
+  Serial.println("Initialize WiFi manager...");
+  lcd.clear(); lcd.home();
+  lcd.print("Init WiFi");
+  setupWifi();
 
   // Http Server
+  lcd.clear(); lcd.home();
+  lcd.print("Init WebServer");
   Serial.println("Initialize WebServer...");
   setupWebServer();
 
@@ -127,11 +164,28 @@ void takeReading()
     dallasPrintAddress(dallasAddress[i]);
     Serial.println(": " + String(dallasTemp[i]) + "°C");
   }
+  
+  // LCD OUTPUT
+  lcd.clear();
+  lcd.home();
+    
+  String lcdInfo;
+  lcdInfo = (WiFi.SSID() + " " +  WiFi.localIP().toString() );
+  lcd.print(lcdInfo);
+    
+  for (int i = 0; i < dallasCount && i < 3; i++)
+  {
+      lcd.setCursor(0,i + 1);
+      lcdInfo = (String(i) + ": " + String(dallasTemp[i]) + " C");
+      lcd.print(lcdInfo);      
+  }
+  lcd.noCursor();
 }
 
 void handleHttpClient() {
   httpServer.handleClient();
 }
+
 void dallasRead(float *temp)
 {
   // call sensors.requestTemperatures() to issue a global temperature 
@@ -188,6 +242,8 @@ String deviceStatus()
 
     info += ("</body></html>");
 
+
+   
     return info;
 }
 
