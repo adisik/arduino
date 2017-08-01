@@ -16,47 +16,55 @@ class SensorDallas : public Sensor
     int dallasCount = 0; // number of available dallas sensors
     DeviceAddress dallasAddress[DALLAS_MAX_DEVICES];
     OneWire *oneWire = NULL;
+    DallasTemperature *dallas = NULL;
+    DeviceState *deviceState = NULL;
     
   public:
 
     SensorDallas(DeviceState *deviceState, OneWire *oneWire)
     {
-      oneWire = oneWire;
-      
-      // Pass our oneWire reference to Dallas Temperature. 
-      DallasTemperature dallas(&oneWire);
-      DeviceAddress sensorDeviceAddress;
-      
+      this->oneWire = oneWire;
+      this->deviceState = deviceState;
     }
 
-  virtual void Initialize()
+  void begin()
   {
-    Serial.println("Initialize Dallas devices ...");
-    dallas.begin();
-  
-    Serial.print("..found ");
-    dallasCount = dallas.getDeviceCount();
-    Serial.print(dallasCount, DEC); 
-    Serial.println(" devices");
+    // pass oneWire reference to Dallas Temperature. 
+    dallas = new DallasTemperature(oneWire);
+    //DeviceAddress sensorDeviceAddress;
 
+    //Serial.print(int(deviceState));
+    deviceState->state("Init dallas");
+
+    dallas->begin();
+  
+    dallasCount = dallas->getDeviceCount();
+    String msg = "Found ";
+    deviceState->debug(msg + dallasCount + " devices");
+    
     if (dallasCount > DALLAS_MAX_DEVICES) {
-      Serial.print("..too many devices found, truncating to ");
-      Serial.println(DALLAS_MAX_DEVICES);
+      msg = "Too many devices found ( ";
+      deviceState->debug(msg + dallasCount + ") truncating to " + DALLAS_MAX_DEVICES + " devices");
       dallasCount = DALLAS_MAX_DEVICES;
     }
   
     for (int i = 0; i < dallasCount; i++)
     {
-      Serial.print("..initialize dallas device ");
-      Serial.println(i);
-      Serial.print("..");
-      dallas.getAddress(dallasAddress[i], i);
-      dallas.setResolution(dallasAddress[i], SENSOR_RESOLUTION);
-      dallasPrintAddress(dallasAddress[i]);
+      msg = "Init dallas device";
+      deviceState->debug(msg + i);
+
+      // get unique address of sensor
+      dallas->getAddress(dallasAddress[i], i);
+      
+      // set sensor resolution (precision of measurements)
+      dallas->setResolution(dallasAddress[i], SENSOR_RESOLUTION);
+      
+      //TMP dallasPrintAddress(dallasAddress[i]);
+      deviceState->debug(dallasAddress2String(dallasAddress[i]));
     }
   }
 
-  void takeReading()
+  Reading* takeReadings()
   {
     float dallasTemp[DALLAS_MAX_DEVICES];
     dallasRead(dallasTemp);
@@ -65,13 +73,9 @@ class SensorDallas : public Sensor
     for (int i = 0; i < dallasCount; i++)
     {
       Serial.print(".. ");
-      dallasPrintAddress(dallasAddress[i]);
+      //TMP dallasPrintAddress(dallasAddress[i]);
       Serial.println(": " + String(dallasTemp[i]) + "°C");
     }
-    
-    // LCD OUTPUT
-    //TMP lcd.clear();
-    //TMP lcd.home();
       
     String lcdInfo;
     lcdInfo = (WiFi.SSID() + " " +  WiFi.localIP().toString() );
@@ -90,26 +94,28 @@ class SensorDallas : public Sensor
   {
     // call sensors.requestTemperatures() to issue a global temperature 
     // request to all devices on the bus
-    dallas.requestTemperatures();
+    dallas->requestTemperatures();
     
     for (int i = 0; i < dallasCount; i++)
     {
-      temp[i] = dallas.getTempCByIndex(i);
+      temp[i] = dallas->getTempCByIndex(i);
       if (temp[i] == -127) temp[i] = NAN;
     }
   }
 
-  // function to print a dallas device address
-  void dallasPrintAddress(DeviceAddress deviceAddress)
+  // get string representation of a dallas device address
+  String dallasAddress2String(DeviceAddress deviceAddress)
   {
+    String result = "";
     for (uint8_t i = 0; i < 8; i++)
     {
       // zero pad the address if necessary
-      if (deviceAddress[i] < 16) Serial.print("0");
-      Serial.print(deviceAddress[i], HEX);
+      if (deviceAddress[i] < 16) result += "0";
+      
+      result += String(deviceAddress[i], HEX);
     }
+    return result;
   }
-
 };
 
 #endif

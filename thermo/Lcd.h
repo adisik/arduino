@@ -20,7 +20,7 @@ class Lcd: public DeviceStateListener
       lcd = new LiquidCrystal_I2C(0x27, 20, 4);
     }
   
-    void Initialize()
+    void begin()
     {
       // initialize display
       lcd->begin();
@@ -34,5 +34,12 @@ class Lcd: public DeviceStateListener
 
       // move cursor to home position
       lcd->home();
+    }
+
+    void state(String state)
+    {
+      lcd->clear();
+      lcd->home();
+      lcd->print(state);
     }
 };

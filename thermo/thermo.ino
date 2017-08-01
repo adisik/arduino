@@ -3,6 +3,9 @@
 
 #include <DNSServer.h>
 
+#include <LiquidCrystal_I2C.h> // hacked version of https://github.com/agnunez/ESP8266-I2C-LCD1602 (begin uses default arguments passed to Wire.begin())
+#include <LiquidCrystal.h>
+
 #include <ESP8266WiFiAP.h>
 #include <ESP8266WiFiScan.h>
 #include <WiFiClient.h>
@@ -16,54 +19,71 @@
 #include <ESP8266mDNS.h>
 #include "Timer.h" // http://playground.arduino.cc/Code/Timer#Installation
 #include <OneWire.h>
-
+#include <DallasTemperature.h>
 #include <WiFiManager.h>
 #include "DeviceState.h";
+#include "SerialWriter.h";
+#include "Lcd.h"
+#include "Sensors.h"
+#include "SensorDallas.h"
 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 0
 
+// Prefix of device network host name
+#define HOST_NAME "thermo1"
+
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
+// Instance of global timer
 Timer t;
 
-DeviceState ds;
+// Instance of device state
+DeviceState deviceState;
 
+// Instance of writer to serial interface
+SerialWriter serialWriter;
+
+// Instance LCD display
+Lcd lcd;
+
+// Instance of sensors management
+Sensors sensors;
+
+// Instance of Dallas sensor interface
+SensorDallas dallas(&deviceState, &oneWire);
+
+// Instance of the simple web server
 ESP8266WebServer httpServer(80);
 
-const String device_id       = "Thermo1";       // Device indentification
-const String host_prefix     = "ESP8266";      // Hostname prefix
-String host;
+String host = HOST_NAME;
 
 void setup(void)
 {
-  // initialize serial port
-  Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control");
+  deviceState.addListener(&serialWriter);
+  deviceState.addListener(&lcd);
+  deviceState.begin();
+  
+  deviceState.state("Init sensors");
 
+  sensors.addSensor(&dallas);
+  sensors.begin();
+  
   // create dallas sensor instance
-  
-
-  // initialize display
-  //TMP lcd.begin();
-  //lcd.init();
-  //TMP lcd.backlight();
-  //lcd.noBacklight();
-  //TMP lcd.clear(); lcd.home();
-  
+ 
   // Dallas
   //TMP lcd.clear(); lcd.home();
   //TMP lcd.print("Init Dallas");
   //TMP setupDallas();
   
   //Hostname
-  host = host_prefix + device_id;
+  //TMP host = HOST_PREFIX + DEVICE_ID;
   host.toLowerCase();
-  Serial.println("Device hostname is " + host);
+  deviceState.debug("Device hostname is " + host);
 
   // WiFi manager
-  Serial.println("Initialize WiFi manager...");
+  deviceState.state("Init WiFi manager");
   //TMP lcd.clear(); lcd.home();
   //TMP lcd.print("Init WiFi");
   setupWifi();
@@ -71,9 +91,10 @@ void setup(void)
   // Http Server
   //TMP lcd.clear(); lcd.home();
   //TMP lcd.print("Init WebServer");
-  Serial.println("Initialize WebServer...");
+  deviceState.state("Init WebServer");
   setupWebServer();
 
+  deviceState.state("Control loop");
   //Timer
   //TMP t.every(5000, takeReading);
   t.every(100, handleHttpClient);
@@ -113,7 +134,6 @@ void loop(void)
 void handleHttpClient() {
   httpServer.handleClient();
 }
-
 
 String deviceStatus()
 {
@@ -157,8 +177,6 @@ String deviceStatus()
     //TMP }
 
     info += ("</body></html>");
-
-
    
     return info;
 }
