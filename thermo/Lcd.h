@@ -1,16 +1,16 @@
-#include "DeviceStateListener.h"
+#ifndef LCD_H
+#define LCD_H
 
 #include <LiquidCrystal_I2C.h> // hacked version of https://github.com/agnunez/ESP8266-I2C-LCD1602 (begin uses default arguments passed to Wire.begin())
 #include <LiquidCrystal.h>
+#include "DeviceStateListener.h"
 
 class Lcd: public DeviceStateListener
 {
   private:
-  
     LiquidCrystal_I2C *lcd;
     
   public:
-  
     Lcd()
     {
       // Construct an LCD object and pass it the 
@@ -23,7 +23,8 @@ class Lcd: public DeviceStateListener
     void begin()
     {
       // initialize display
-      lcd->begin();
+      //lcd->begin();
+      lcd->begin(0,2);      // In ESP8266-01, SDA=0, SCL=2 
       //lcd.init();
 
       // turn on display backlight 
@@ -43,3 +44,5 @@ class Lcd: public DeviceStateListener
       lcd->print(state);
     }
 };
+
+#endif

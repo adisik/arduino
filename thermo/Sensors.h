@@ -2,25 +2,19 @@
 #define Sensors_h
 
 #include "LinkedList.h"
+#include "DeviceState.h"
 #include "Sensor.h"
-
-class SensorsListener
-{
-  public:
-
-  virtual void begin() { };
-  virtual void state(String state) { };
-  virtual void debug(String msg) { };
-};
 
 class Sensors
 {
   private:
     LinkedList<Sensor*> mySensors;
-
+    DeviceState *deviceState = NULL;
+    
   public:
-    Sensors()
+    Sensors(DeviceState *deviceState)
     {
+      this->deviceState = deviceState;
       mySensors = LinkedList<Sensor*>();
     }
     
@@ -33,6 +27,8 @@ class Sensors
 
     void begin()
     {
+      deviceState->state("Init sensors");
+        
       for(int i = 0; i < mySensors.size(); i++)
       {
         Sensor *sensor = mySensors.get(i);
@@ -44,8 +40,7 @@ class Sensors
     {
       for(int i = 0; i < mySensors.size(); i++)
       {
-        Sensor *sensor = mySensors.get(i);
-        Reading* readings = sensor->takeReadings();
+        mySensors.get(i)->takeReadings();
       }
     }
 };

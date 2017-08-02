@@ -2,15 +2,11 @@
 #define SerialWriter_h
 
 #include "DeviceStateListener.h"
+#include "Sensors.h"
 
 class SerialWriter: public DeviceStateListener
 {
   public:
-  
-    SerialWriter()
-    {
-
-    }
   
     void begin()
     {
@@ -27,6 +23,21 @@ class SerialWriter: public DeviceStateListener
     void debug(String msg)
     {
         Serial.println(msg);
+    }
+
+    void processReadings(Sensors &sensors)
+    {
+      // get all sensor readings and generate appropriate HTML representation
+      for(int i = 0; i < sensors.getSensors()->size(); i++)
+      {
+        Sensor *sensor = sensors.getSensors()->get(i);
+        Reading* reading = sensor->getReadings();
+        while (reading->value != Reading::VALUE_LAST)
+        {
+          Serial.println(reading->address + ": " + String(reading->value) + "C");
+          reading++;
+        }
+      }
     }
 };
 

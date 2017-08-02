@@ -15,6 +15,7 @@ class SensorDallas : public Sensor
   private:
     int dallasCount = 0; // number of available dallas sensors
     DeviceAddress dallasAddress[DALLAS_MAX_DEVICES];
+    Reading readings[DALLAS_MAX_DEVICES + 1];
     OneWire *oneWire = NULL;
     DallasTemperature *dallas = NULL;
     DeviceState *deviceState = NULL;
@@ -60,34 +61,31 @@ class SensorDallas : public Sensor
       dallas->setResolution(dallasAddress[i], SENSOR_RESOLUTION);
       
       //TMP dallasPrintAddress(dallasAddress[i]);
+
+      readings[i].address = dallasAddress2String(dallasAddress[i]);
       deviceState->debug(dallasAddress2String(dallasAddress[i]));
     }
+
+    readings[dallasCount + 1].value = Reading::VALUE_LAST;
   }
 
   Reading* takeReadings()
   {
     float dallasTemp[DALLAS_MAX_DEVICES];
     dallasRead(dallasTemp);
-    
-    Serial.println("Dallas measured data:");
-    for (int i = 0; i < dallasCount; i++)
-    {
-      Serial.print(".. ");
-      //TMP dallasPrintAddress(dallasAddress[i]);
-      Serial.println(": " + String(dallasTemp[i]) + "°C");
-    }
-      
-    String lcdInfo;
-    lcdInfo = (WiFi.SSID() + " " +  WiFi.localIP().toString() );
-    //TMP lcd.print(lcdInfo);
-      
+  
     for (int i = 0; i < dallasCount && i < 3; i++)
     {
-        //TMP lcd.setCursor(0,i + 1);
-        lcdInfo = (String(i) + ": " + String(dallasTemp[i]) + " C");
-        //TMP lcd.print(lcdInfo);      
+      readings[i].value = dallasTemp[i];
     }
-    //TMP lcd.noCursor();
+    readings[dallasCount].value = Reading::VALUE_LAST;
+
+    return getReadings();
+  }
+
+  Reading* getReadings()
+  {
+    return readings;
   }
 
   void dallasRead(float *temp)
@@ -99,7 +97,7 @@ class SensorDallas : public Sensor
     for (int i = 0; i < dallasCount; i++)
     {
       temp[i] = dallas->getTempCByIndex(i);
-      if (temp[i] == -127) temp[i] = NAN;
+      if (temp[i] == -127) temp[i] = Reading::VALUE_NA;
     }
   }
 
