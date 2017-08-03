@@ -23,8 +23,8 @@ class Lcd: public DeviceStateListener
     void begin()
     {
       // initialize display
-      lcd->begin();
-      //lcd->begin(0,2);      // In ESP8266-01, SDA=0, SCL=2 
+      //lcd->begin();
+      lcd->begin(0,2);      // In ESP8266-01, SDA=0, SCL=2 
       //lcd.init();
 
       // turn on display backlight 

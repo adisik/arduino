@@ -15,7 +15,7 @@ class ThermoHttpServer : public RequestHandler
     String hostName;
     
   public:
-    ThermoHttpServer(Sensors* sensors): RequestHandler()
+    ThermoHttpServer(Sensors *sensors): RequestHandler()
     {
       this->hostName = "thermo";
       this->sensors = sensors;
@@ -24,9 +24,6 @@ class ThermoHttpServer : public RequestHandler
 
     void begin()
     {
-      char login[20];
-      char passwd[20];
-
       DeviceState::getInstance().state("Init WebServer");
       DeviceState::getInstance().debug("Device hostname is " + this->hostName);
       

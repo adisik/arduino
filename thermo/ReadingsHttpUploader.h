@@ -8,45 +8,25 @@
 class ReadingsHttpUploader
 {
     public:
-  
-    void begin()
-    {
-        // initialize serial port
-        Serial.begin(9600);
-        Serial.println("Serial port initialized");
-    }
 
     void processReadings(Sensors &sensors)
     {
-        // get all sensor readings and generate appropriate HTML representation
-        for(int i = 0; i < sensors.getSensors()->size(); i++)
-        {
-            Sensor *sensor = sensors.getSensors()->get(i);
-            Reading* reading = sensor->getReadings();
-            while (reading->value != Reading::VALUE_LAST)
-            {
-                // Serial.println(reading->address + ": " + String(reading->value) + "C");
-                reading++;
-            }
-        }
-
         HTTPClient http;
+        String url = "http://blue.pavoucek.cz";
         String logPrefix = "[HTTP] ";
-        DeviceState::getInstance().debug(logPrefix + "begin...");
 
         // configure traged server and url
-        http.begin("http://blue.pavoucek.cz"); //HTTP
+        http.begin(url); //HTTP
 
-        DeviceState::getInstance().debug(logPrefix + "GET ...");
+        DeviceState::getInstance().debug(logPrefix + "POST to " + url);
 
         // start connection and send HTTP header
-        int httpCode = http.GET();
+        int httpCode = http.POST(encodePayload(readings2Json(sensors)));
 
         // httpCode will be negative on error
         if(httpCode > 0)
         {
             // HTTP header has been send and Server response header has been handled
-            //USE_SERIAL.printf("[HTTP] GET... code: %d\n", httpCode);
             DeviceState::getInstance().debug(logPrefix + "GET ...code:" + httpCode);
 
             // file found at server
@@ -61,6 +41,43 @@ class ReadingsHttpUploader
         }
 
         http.end();
+    }
+
+    private:
+
+    String readings2Json(Sensors &sensors)
+    {
+        String result = "";
+        result += "{" + '\n';
+        result += "  \"device\": \"thermo\"" + '\n';
+        result += "  \"readings\": [" + '\n';
+        
+        // get all sensor readings and generate appropriate HTML representation
+        for(int i = 0; i < sensors.getSensors()->size(); i++)
+        {
+            Sensor *sensor = sensors.getSensors()->get(i);
+            Reading* reading = sensor->getReadings();
+            bool readingCounter = 0;
+            while (reading->value != Reading::VALUE_LAST)
+            {
+                // Serial.println(reading->address + ": " + String(reading->value) + "C");
+                if (readingCounter > 0) result += "," + '\n';
+                result += "{\"address\": " + reading->address + ", \"value\"" + reading->value + "}";
+                reading++;
+                readingCounter++;
+            }
+        }
+        
+        result += "  ]" + '\n';
+        result += "}";
+        
+        return result;
+    }
+
+    String encodePayload(String payload)
+    {
+      // TODO
+      return payload;
     }
 };
 

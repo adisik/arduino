@@ -35,13 +35,13 @@ ReadingsHttpUploader readingsHttpUploader;
 Lcd lcd;
 
 // Instance of sensors management
-Sensors sensors();
+Sensors sensors;
 
 // Instance of Dallas sensor interface
 SensorDallas dallas(&oneWire);
 
 // Instance of wifi connectivity wrapper
-WifiConnectivity wifiConnectivity();
+WifiConnectivity wifiConnectivity;
 
 // Instance of the simple web server
 ThermoHttpServer httpServer(&sensors);

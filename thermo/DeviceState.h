@@ -4,6 +4,8 @@
 #include "LinkedList.h"
 #include "DeviceStateListener.h"
 
+// Singleton that provides methods for reporting both
+// device state and debug messages
 class DeviceState
 {
   private:
