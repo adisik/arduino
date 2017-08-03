@@ -1,10 +1,11 @@
 #include <Wire.h>
 #include "Timer.h" // http://playground.arduino.cc/Code/Timer#Installation (https://github.com/JChristensen/Timer)
 #include <OneWire.h>
-#include "WifiConnectivity.h";
-#include "ThermoHttpServer.h";
-#include "DeviceState.h";
-#include "SerialWriter.h";
+#include "WifiConnectivity.h"
+#include "ThermoHttpServer.h"
+#include "DeviceState.h"
+#include "SerialWriter.h"
+#include "ReadingsHttpUploader.h"
 #include "Lcd.h"
 #include "Sensors.h"
 #include "SensorDallas.h"
@@ -22,32 +23,35 @@ OneWire oneWire(ONE_WIRE_BUS);
 Timer t;
 
 // Instance of device state
-DeviceState deviceState;
+//DeviceState deviceState;
 
 // Instance of writer to serial interface
 SerialWriter serialWriter;
+
+// Instance of readings uploader (http client)
+ReadingsHttpUploader readingsHttpUploader;
 
 // Instance LCD display
 Lcd lcd;
 
 // Instance of sensors management
-Sensors sensors(&deviceState);
+Sensors sensors();
 
 // Instance of Dallas sensor interface
-SensorDallas dallas(&deviceState, &oneWire);
+SensorDallas dallas(&oneWire);
 
 // Instance of wifi connectivity wrapper
-WifiConnectivity wifiConnectivity(&deviceState);
+WifiConnectivity wifiConnectivity();
 
 // Instance of the simple web server
-ThermoHttpServer httpServer(&deviceState, &sensors);
+ThermoHttpServer httpServer(&sensors);
 
 void setup(void)
 {
   // init device state listeners
-  deviceState.addListener(&serialWriter);
-  deviceState.addListener(&lcd);
-  deviceState.begin();
+  DeviceState::getInstance().addListener(&serialWriter);
+  DeviceState::getInstance().addListener(&lcd);
+  DeviceState::getInstance().begin();
 
   // init all sensors
   sensors.addSensor(&dallas);
@@ -60,7 +64,7 @@ void setup(void)
   httpServer.begin();
 
   // configure control loop
-  deviceState.state("Control loop");
+  DeviceState::getInstance().state("Control loop");
   t.every(INTERVAL_READINGS, takeReadings);
   t.every(100, handleHttpClient);
 }
@@ -81,6 +85,7 @@ void takeReadings()
 {
   sensors.takeReadings();
   serialWriter.processReadings(sensors);
+  readingsHttpUploader.processReadings(sensors);
 }
 
 

@@ -1,5 +1,5 @@
-#ifndef Sensor_h
-#define Sensor_h
+#ifndef SENSOR_H
+#define SENSOR_H
 
 class Reading
 {

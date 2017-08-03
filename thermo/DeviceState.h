@@ -1,5 +1,5 @@
-#ifndef DeviceState_h
-#define DeviceState_h
+#ifndef DEVICESTATE_H
+#define DEVICESTATE_H
 
 #include "LinkedList.h"
 #include "DeviceStateListener.h"
@@ -9,13 +9,24 @@ class DeviceState
   private:
     LinkedList<DeviceStateListener*> myListeners;
 
-  public:
-  
     DeviceState()
     {
       myListeners = LinkedList<DeviceStateListener*>();
     }
-    
+
+  public:
+
+    static DeviceState& getInstance()
+    {
+        static DeviceState instance; // Guaranteed to be destroyed.
+                                     // Instantiated on first use.
+        return instance;
+    }
+
+    // technique of deleting the methods we don't want.
+    DeviceState(DeviceState const&) = delete;
+    void operator=(DeviceState const&)  = delete;
+  
     void addListener(DeviceStateListener* listener)
     {
       myListeners.add(listener);

@@ -1,5 +1,5 @@
-#ifndef DeviceStateListener_h
-#define DeviceStateListener_h
+#ifndef DEVICEsTATElISTENER_H
+#define DEVICEsTATElISTENER_H
 
 #include <Arduino.h>
 

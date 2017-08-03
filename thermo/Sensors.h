@@ -1,5 +1,5 @@
-#ifndef Sensors_h
-#define Sensors_h
+#ifndef SENSORS_H
+#define SENSORS_H
 
 #include "LinkedList.h"
 #include "DeviceState.h"
@@ -9,12 +9,10 @@ class Sensors
 {
   private:
     LinkedList<Sensor*> mySensors;
-    DeviceState *deviceState = NULL;
     
   public:
-    Sensors(DeviceState *deviceState)
+    Sensors()
     {
-      this->deviceState = deviceState;
       mySensors = LinkedList<Sensor*>();
     }
     
@@ -27,7 +25,7 @@ class Sensors
 
     void begin()
     {
-      deviceState->state("Init sensors");
+        DeviceState::getInstance().state("Init sensors");
         
       for(int i = 0; i < mySensors.size(); i++)
       {

@@ -1,5 +1,5 @@
-#ifndef SerialWriter_h
-#define SerialWriter_h
+#ifndef SERIALWRITER_H
+#define SERIALWRITER_H
 
 #include "DeviceStateListener.h"
 #include "Sensors.h"

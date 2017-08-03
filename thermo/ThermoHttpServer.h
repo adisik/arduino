@@ -1,5 +1,5 @@
-#ifndef ThermoHttpServer_h
-#define ThermoHttpServer_h
+#ifndef THERMOHTTPSERVER_H
+#define THERMOHTTPSERVER_H
 
 #include <DNSServer.h>
 #include <ESP8266mDNS.h>
@@ -11,15 +11,13 @@ class ThermoHttpServer : public RequestHandler
 {
   private:
     ESP8266WebServer *httpServer = NULL;
-    DeviceState *deviceState = NULL;
     Sensors *sensors = NULL;
     String hostName;
     
   public:
-    ThermoHttpServer(DeviceState *deviceState, Sensors* sensors): RequestHandler()
+    ThermoHttpServer(Sensors* sensors): RequestHandler()
     {
       this->hostName = "thermo";
-      this->deviceState = deviceState;
       this->sensors = sensors;
       httpServer = new ESP8266WebServer(80);
     }
@@ -29,8 +27,8 @@ class ThermoHttpServer : public RequestHandler
       char login[20];
       char passwd[20];
 
-      deviceState->state("Init WebServer");
-      deviceState->debug("Device hostname is " + this->hostName);
+      DeviceState::getInstance().state("Init WebServer");
+      DeviceState::getInstance().debug("Device hostname is " + this->hostName);
       
       MDNS.begin(this->hostName.c_str());
       httpServer->addHandler(this);
@@ -103,14 +101,6 @@ class ThermoHttpServer : public RequestHandler
             reading++;
           }
         }
-      
-        //TMP float dallasTemp[DALLAS_MAX_DEVICES];
-        //TMP dallasRead(dallasTemp);
-      
-        //TMP for (int i = 0; i < dallasCount; i++)
-        //TMP {
-        //TMP   info += ("<b>DS18B20 Readings for device " + String(i) + ":</b> " + String(dallasTemp[i]) + "&#8451;<br />");
-        //TMP }
     
         info += ("</body></html>");
        

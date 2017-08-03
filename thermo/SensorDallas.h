@@ -1,5 +1,5 @@
-#ifndef SensorDallas_h
-#define SensorDallas_h
+#ifndef SENSORDALLAS_H
+#define SENSORDALLAS_H
 
 #include <DallasTemperature.h>
 #include "Sensor.h"
@@ -18,14 +18,12 @@ class SensorDallas : public Sensor
     Reading readings[DALLAS_MAX_DEVICES + 1];
     OneWire *oneWire = NULL;
     DallasTemperature *dallas = NULL;
-    DeviceState *deviceState = NULL;
     
   public:
 
-    SensorDallas(DeviceState *deviceState, OneWire *oneWire)
+    SensorDallas(OneWire *oneWire)
     {
       this->oneWire = oneWire;
-      this->deviceState = deviceState;
     }
 
   void begin()
@@ -35,24 +33,24 @@ class SensorDallas : public Sensor
     //DeviceAddress sensorDeviceAddress;
 
     //Serial.print(int(deviceState));
-    deviceState->state("Init dallas");
+    DeviceState::getInstance().state("Init dallas");
 
     dallas->begin();
   
     dallasCount = dallas->getDeviceCount();
     String msg = "Found ";
-    deviceState->debug(msg + dallasCount + " devices");
+    DeviceState::getInstance().debug(msg + dallasCount + " devices");
     
     if (dallasCount > DALLAS_MAX_DEVICES) {
       msg = "Too many devices found ( ";
-      deviceState->debug(msg + dallasCount + ") truncating to " + DALLAS_MAX_DEVICES + " devices");
+      DeviceState::getInstance().debug(msg + dallasCount + ") truncating to " + DALLAS_MAX_DEVICES + " devices");
       dallasCount = DALLAS_MAX_DEVICES;
     }
   
     for (int i = 0; i < dallasCount; i++)
     {
       msg = "Init dallas device";
-      deviceState->debug(msg + i);
+      DeviceState::getInstance().debug(msg + i);
 
       // get unique address of sensor
       dallas->getAddress(dallasAddress[i], i);
@@ -63,7 +61,7 @@ class SensorDallas : public Sensor
       //TMP dallasPrintAddress(dallasAddress[i]);
 
       readings[i].address = dallasAddress2String(dallasAddress[i]);
-      deviceState->debug(dallasAddress2String(dallasAddress[i]));
+      DeviceState::getInstance().debug(dallasAddress2String(dallasAddress[i]));
     }
 
     readings[dallasCount + 1].value = Reading::VALUE_LAST;
