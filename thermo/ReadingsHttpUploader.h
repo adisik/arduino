@@ -12,22 +12,24 @@ class ReadingsHttpUploader
     void processReadings(Sensors &sensors)
     {
         HTTPClient http;
-        String url = "http://blue.pavoucek.cz";
+        //String url = "http://blue.pavoucek.cz";
+        String url = "http://192.168.0.12:8080/";
         String logPrefix = "[HTTP] ";
 
         // configure traged server and url
         http.begin(url); //HTTP
 
+        http.addHeader("Content-Type", "application/json");
+
         DeviceState::getInstance().debug(logPrefix + "POST to " + url);
 
-        // start connection and send HTTP header
         int httpCode = http.POST(encodePayload(readings2Json(sensors)));
 
         // httpCode will be negative on error
         if(httpCode > 0)
         {
             // HTTP header has been send and Server response header has been handled
-            DeviceState::getInstance().debug(logPrefix + "GET ...code:" + httpCode);
+            DeviceState::getInstance().debug(logPrefix + "POST status code: " + httpCode);
 
             // file found at server
             if(httpCode == HTTP_CODE_OK)
@@ -37,7 +39,7 @@ class ReadingsHttpUploader
             }
         } else
         {
-            DeviceState::getInstance().debug(logPrefix + "GET... failed, error: " + http.errorToString(httpCode));
+            DeviceState::getInstance().debug(logPrefix + "POST failed, error: " + http.errorToString(httpCode));
         }
 
         http.end();
@@ -48,9 +50,9 @@ class ReadingsHttpUploader
     String readings2Json(Sensors &sensors)
     {
         String result = "";
-        result += "{" + '\n';
-        result += "  \"device\": \"thermo\"" + '\n';
-        result += "  \"readings\": [" + '\n';
+        result += "{";
+        result += "\"device\": \"thermo\", ";
+        result += "\"readings\": [";
         
         // get all sensor readings and generate appropriate HTML representation
         for(int i = 0; i < sensors.getSensors()->size(); i++)
@@ -61,15 +63,14 @@ class ReadingsHttpUploader
             while (reading->value != Reading::VALUE_LAST)
             {
                 // Serial.println(reading->address + ": " + String(reading->value) + "C");
-                if (readingCounter > 0) result += "," + '\n';
-                result += "{\"address\": " + reading->address + ", \"value\"" + reading->value + "}";
+                if (readingCounter > 0) result += ",";
+                result += "{\"address\": " + reading->address + ", \"value\": " + reading->value + "}";
                 reading++;
                 readingCounter++;
             }
         }
         
-        result += "  ]" + '\n';
-        result += "}";
+        result += "]}";
         
         return result;
     }
