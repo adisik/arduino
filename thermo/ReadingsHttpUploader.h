@@ -13,7 +13,7 @@ class ReadingsHttpUploader
     {
         HTTPClient http;
         //String url = "http://blue.pavoucek.cz";
-        String url = "http://192.168.0.12:8080/";
+        String url = "http://192.168.0.12:9200/api/readings";
         String logPrefix = "[HTTP] ";
 
         // configure traged server and url
@@ -64,7 +64,7 @@ class ReadingsHttpUploader
             {
                 // Serial.println(reading->address + ": " + String(reading->value) + "C");
                 if (readingCounter > 0) result += ",";
-                result += "{\"address\": " + reading->address + ", \"value\": " + reading->value + "}";
+                result += "{\"address\": \"" + reading->address + "\", \"value\": " + reading->value + "}";
                 reading++;
                 readingCounter++;
             }
