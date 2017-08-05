@@ -77,7 +77,57 @@ class ReadingsHttpUploader
 
     String encodePayload(String payload)
     {
-      // TODO
+        // Based on: https://github.com/dmaixner/esp8266-nodemcu-aes
+
+        // password used for encypt/decrypt
+        byte key[] = {'m', 'y', 's', 'e', 'c', 'r', 'e', 't', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+
+        AES aes;
+
+        // init vector, for now just constant
+        byte iv[N_BLOCK] = {65, 66, 67, 68, 65, 66, 67, 68, 65, 66, 67, 68, 65, 66, 67, 68};
+
+        // plain message in array of bytes
+        //TMP byte plain[200];
+
+        // encrypted message
+        byte cipher[200];
+
+        // BASE64 encoded data, which are going to be transported to server/storage
+        char ivb64[200];
+        char cipherb64[200];
+
+        // set password
+        aes.set_key(key, sizeof(key));
+
+        // transform string to byte[]
+        msg.getBytes(plain, sizeof(plain));
+        //printArray("Plain message", plain, msg.length());
+
+        // BASE64 encode init vector
+        byte ivb64len = base64_encode(ivb64, (char *)iv, N_BLOCK);
+        //printArray("IV", iv, 16);
+        //Serial.println("IV in B64: " + String(ivb64));
+
+        // encrypt message with AES128 CBC pkcs7 padding with key and IV
+        aes.do_aes_encrypt(plain, strlen((char *)plain), cipher, key, 128, iv);
+        //printArray("Encrypted message", cipher, aes.get_size());
+        //Serial.println("Encrypted message size: " + String(aes.get_size()));
+
+        // BASE64 encode ciphered message
+        byte cipherb64len = base64_encode(cipherb64, (char *)cipher, aes.get_size());
+        //Serial.println("Encrypted message in B64: " + String(cipherb64));
+
+        aes.clean();
+
+        // decode IV from BASE64
+        base64_decode((char *)iv, ivb64, ivb64len);
+        //printArray("IV B64-decoded", iv, 16);
+
+        // decrypt message with AES128 CBC pkcs7 padding with key and IV
+        aes.do_aes_decrypt(cipher, aes.get_size(), plain, key, 128, iv);
+        //printArray("Decrypted message", plain, msg.length());
+
       return payload;
     }
 };
