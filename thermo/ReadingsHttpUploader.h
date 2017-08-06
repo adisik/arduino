@@ -2,6 +2,9 @@
 #define READINGS_HTTP_UPLOADER_H
 
 #include <ESP8266HTTPClient.h>
+#include <AES.h>
+#include <ebase64.h>
+#include "config.h"
 #include "Sensors.h"
 #include "DeviceState.h"
 
@@ -13,7 +16,7 @@ class ReadingsHttpUploader
     {
         HTTPClient http;
         //String url = "http://blue.pavoucek.cz";
-        String url = "http://192.168.0.12:9200/api/readings";
+        String url = PUSH_URL;
         String logPrefix = "[HTTP] ";
 
         // configure traged server and url
@@ -51,7 +54,9 @@ class ReadingsHttpUploader
     {
         String result = "";
         result += "{";
-        result += "\"device\": \"thermo\", ";
+        result += "\"device\": \"";
+        result +=  DEVICE_ID;
+        result += "\", ";
         result += "\"readings\": [";
         
         // get all sensor readings and generate appropriate HTML representation
@@ -80,7 +85,7 @@ class ReadingsHttpUploader
         // Based on: https://github.com/dmaixner/esp8266-nodemcu-aes
 
         // password used for encypt/decrypt
-        byte key[] = {'m', 'y', 's', 'e', 'c', 'r', 'e', 't', 'p', 'a', 's', 's', 'w', 'o', 'r', 'd'};
+        byte key[] = PUSH_ENCRYPTION_PASSWORD;
 
         AES aes;
 
@@ -88,48 +93,55 @@ class ReadingsHttpUploader
         byte iv[N_BLOCK] = {65, 66, 67, 68, 65, 66, 67, 68, 65, 66, 67, 68, 65, 66, 67, 68};
 
         // plain message in array of bytes
-        //TMP byte plain[200];
+        byte plain[PUSH_AES_BUFFER_SIZE];
 
         // encrypted message
-        byte cipher[200];
+        byte encrypted[PUSH_AES_BUFFER_SIZE];
 
         // BASE64 encoded data, which are going to be transported to server/storage
-        char ivb64[200];
-        char cipherb64[200];
+        char encrypted64[PUSH_AES_BUFFER_SIZE * 4];
 
-        // set password
+		// BASE64 encoded init vecotr
+        char ivb64[N_BLOCK * 4];
+			
+		// BASE64 encode init vector
+    	byte ivb64len = base64_encode(ivb64, (char *)iv, N_BLOCK);
+    	printArray("init vector", iv, 16);
+    	Serial.println("init vector in base64: " + String(ivb64));
+
+        // set password for encryption
         aes.set_key(key, sizeof(key));
 
         // transform string to byte[]
-        msg.getBytes(plain, sizeof(plain));
-        //printArray("Plain message", plain, msg.length());
+        payload.getBytes(plain, sizeof(plain));
 
-        // BASE64 encode init vector
-        byte ivb64len = base64_encode(ivb64, (char *)iv, N_BLOCK);
-        //printArray("IV", iv, 16);
-        //Serial.println("IV in B64: " + String(ivb64));
+        // encrypt message with AES128 CBC pkcs7 padding with key and init vector 
+        //aes.do_aes_encrypt(plain, strlen((char *)plain), encrypted, key, 128, iv);
+        aes.do_aes_encrypt(plain, payload.length(), encrypted, key, 128, iv);
+		printArray("Encrypted message", encrypted, aes.get_size());
+        Serial.println("Encrypted message size: " + String(aes.get_size()));
 
-        // encrypt message with AES128 CBC pkcs7 padding with key and IV
-        aes.do_aes_encrypt(plain, strlen((char *)plain), cipher, key, 128, iv);
-        //printArray("Encrypted message", cipher, aes.get_size());
-        //Serial.println("Encrypted message size: " + String(aes.get_size()));
-
-        // BASE64 encode ciphered message
-        byte cipherb64len = base64_encode(cipherb64, (char *)cipher, aes.get_size());
-        //Serial.println("Encrypted message in B64: " + String(cipherb64));
+        // BASE64 encode encryted message
+        //byte cipherb64len = base64_encode(encrypted64, (char *)encrypted, aes.get_size());
 
         aes.clean();
 
-        // decode IV from BASE64
-        base64_decode((char *)iv, ivb64, ivb64len);
-        //printArray("IV B64-decoded", iv, 16);
+        return payload;
 
-        // decrypt message with AES128 CBC pkcs7 padding with key and IV
-        aes.do_aes_decrypt(cipher, aes.get_size(), plain, key, 128, iv);
-        //printArray("Decrypted message", plain, msg.length());
-
-      return payload;
+        //return String(encrypted64);
     }
+
+	// helper method for printing array of bytes
+	void printArray(String name, byte *arr, int length)
+	{
+		Serial.print(name + ": ");
+		for (int i = 0; i < length; i++)
+		{
+			Serial.write(arr[i]);
+		}
+		Serial.println();
+	}
+
 };
 
 #endif

@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include "Timer.h" // http://playground.arduino.cc/Code/Timer#Installation (https://github.com/JChristensen/Timer)
 #include <OneWire.h>
+#include "config.h"
 #include "WifiConnectivity.h"
 #include "ThermoHttpServer.h"
 #include "DeviceState.h"
@@ -9,12 +10,6 @@
 #include "Lcd.h"
 #include "Sensors.h"
 #include "SensorDallas.h"
-
-// Data wire is plugged into port 2 on the Arduino
-#define ONE_WIRE_BUS 0
-
-// define interval for reading data from sensors (in miliseconds)
-#define INTERVAL_READINGS 5000
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -86,6 +81,7 @@ void takeReadings()
   sensors.takeReadings();
   serialWriter.processReadings(sensors);
   readingsHttpUploader.processReadings(sensors);
+  lcd.processReadings(sensors);
 }
 
 
