@@ -4,6 +4,8 @@
 #include <ESP8266HTTPClient.h>
 #include <AES.h>
 #include <ebase64.h>
+#include <libb64/cencode.h>
+
 #include "config.h"
 #include "Sensors.h"
 #include "DeviceState.h"
@@ -105,9 +107,10 @@ class ReadingsHttpUploader
         char ivb64[N_BLOCK * 4];
 			
 		// BASE64 encode init vector
-    	byte ivb64len = base64_encode(ivb64, (char *)iv, N_BLOCK);
-    	printArray("init vector", iv, 16);
-    	Serial.println("init vector in base64: " + String(ivb64));
+		//byte ivb64len = base64_encode(ivb64, (char *)iv, N_BLOCK);
+		encode((char *)iv, ivb64, N_BLOCK);
+		printArray("init vector", iv, 16);
+		Serial.println("init vector in base64: " + String(ivb64));
 
         // set password for encryption
         aes.set_key(key, sizeof(key));
@@ -123,6 +126,8 @@ class ReadingsHttpUploader
 
         // BASE64 encode encryted message
         //byte cipherb64len = base64_encode(encrypted64, (char *)encrypted, aes.get_size());
+		encode((char *)encrypted, encrypted64, aes.get_size());
+		//Serial.println("encrypted base64: " + String(encrypted64));
 
         aes.clean();
 
@@ -140,6 +145,39 @@ class ReadingsHttpUploader
 			Serial.write(arr[i]);
 		}
 		Serial.println();
+	}
+
+	char* encode(const char* input, char* output, int size)
+	{
+		// https://sourceforge.net/p/libb64/git/ci/master/tree/examples/c-example1.c#l22
+
+		/* keep track of our encoded position */
+		char* c = output;
+
+		/* store the number of bytes encoded by a single call */
+		int cnt = 0;
+
+		/* we need an encoder state */
+		base64_encodestate s;
+		
+		/*---------- START ENCODING ----------*/
+		/* initialise the encoder state */
+		base64_init_encodestate(&s);
+
+		/* gather data from the input and send it to the output */
+		cnt = base64_encode_block(input, size, c, &s);
+		c += cnt;
+
+		/* since we have encoded the entire input string, we know that 
+		   there is no more input data; finalise the encoding */
+		cnt = base64_encode_blockend(c, &s);
+		c += cnt;
+		/*---------- STOP ENCODING  ----------*/
+		
+		/* we want to print the encoded data, so null-terminate it: */
+		*c = 0;
+		
+		return output;
 	}
 
 };
