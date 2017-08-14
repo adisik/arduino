@@ -28,7 +28,7 @@ void testAES128()
 
     printArray("Plain", state, sizeof(state));
 
-    paddingPKCS7(state);
+    paddingPKCS7(state, sizeof(state));
 
     printArray("Plain", state, sizeof(state));
     printArray("Key", key, sizeof(key));
