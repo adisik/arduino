@@ -73,11 +73,18 @@ unsigned char galois_mul2(unsigned char value)
 
 // aes encryption function
 // It manipulates the state and computes the key schedule on the fly
-void ti_aes_encrypt(unsigned char *state, unsigned char *key)
+void ti_aes_encrypt(unsigned char *state, const unsigned char *aes_key)
 {
   unsigned char buf1, buf2, buf3, buf4, round, i;
   unsigned char rcon;
+  unsigned char key[16];
 
+  // copy key to internal buffer since procedure behaves destructive to it
+  // (it is overwritten in each round)
+  for (i = 0; i <16; i++){
+    key[i] = aes_key[i];
+  }
+   
   // Rcon initial value. All subsequent values are computed.
   rcon = 0x01;
 
