@@ -2,58 +2,142 @@
 
 // We need to include Wire.h for I2C communication
 #include <Wire.h>
-#include "OLED.h"
+#include "SSD1306.h"
+// Include the UI lib
+#include "OLEDDisplayUi.h"
 
-// Declare OLED display
-// display(SDA, SCL);
-// SDA and SCL are the GPIO pins of ESP8266 that are connected to respective pins of display.
-OLED display(D3, D5);
+// // Include custom images
+#include "images.h"
 
-void setup() {
-  Serial.begin(9600);
-  Serial.println("OLED test!");
+// Initialize the OLED display using Wire library
+// D3 -> SDA
+// D5 -> SCL
+SSD1306  display(0x3c, D3, D5);
 
-  // Initialize display
-  display.begin();
+OLEDDisplayUi ui     ( &display );
 
-  // Test message
-  display.print("Hello World");
-  delay(3*1000);
-
-  // Test long message
-  display.print("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.");
-  delay(3*1000);
-
-  // Test display clear
-  display.clear();
-  delay(3*1000);
-
-  // Test message postioning
-  display.print("TOP-LEFT");
-  display.print("4th row", 4);
-  display.print("RIGHT-BOTTOM", 7, 4);
-  delay(3*1000);
-
-  // Test display OFF
-  display.off();
-  display.print("3rd row", 3, 8);
-  delay(3*1000);
-
-  // Test display ON
-  display.on();
-  delay(3*1000);
+void msOverlay(OLEDDisplay *display, OLEDDisplayUiState* state)
+{
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  display->setFont(ArialMT_Plain_10);
+  display->drawString(128, 0, String(millis()));
 }
 
-int r = 0, c = 0;
+void drawFrame1(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
+{
+  // draw an xbm image.
+  // Please note that everything that should be transitioned
+  // needs to be drawn relative to x and y
+
+  display->drawXbm(x + 34, y + 14, WiFi_Logo_width, WiFi_Logo_height, WiFi_Logo_bits);
+}
+
+void drawFrame2(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
+{
+  // Demonstrates the 3 included default sizes. The fonts come from SSD1306Fonts.h file
+  // Besides the default fonts there will be a program to convert TrueType fonts into this format
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->setFont(ArialMT_Plain_10);
+  display->drawString(0 + x, 10 + y, "Arial 10");
+
+  display->setFont(ArialMT_Plain_16);
+  display->drawString(0 + x, 20 + y, "Arial 16");
+
+  display->setFont(ArialMT_Plain_24);
+  display->drawString(0 + x, 34 + y, "Arial 24");
+}
+
+void drawFrame3(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
+{
+  // Text alignment demo
+  display->setFont(ArialMT_Plain_10);
+
+  // The coordinates define the left starting point of the text
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->drawString(0 + x, 11 + y, "Left aligned (0,10)");
+
+  // The coordinates define the center of the text
+  display->setTextAlignment(TEXT_ALIGN_CENTER);
+  display->drawString(64 + x, 22 + y, "Center aligned (64,22)");
+
+  // The coordinates define the right end of the text
+  display->setTextAlignment(TEXT_ALIGN_RIGHT);
+  display->drawString(128 + x, 33 + y, "Right aligned (128,33)");
+}
+
+void drawFrame4(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
+{
+  // Demo for drawStringMaxWidth:
+  // with the third parameter you can define the width after which words will be wrapped.
+  // Currently only spaces and "-" are allowed for wrapping
+  display->setTextAlignment(TEXT_ALIGN_LEFT);
+  display->setFont(ArialMT_Plain_10);
+  display->drawStringMaxWidth(0 + x, 10 + y, 128, "Lorem ipsum\n dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore.");
+}
+
+void drawFrame5(OLEDDisplay *display, OLEDDisplayUiState* state, int16_t x, int16_t y)
+{
+
+}
+
+// This array keeps function pointers to all frames
+// frames are the single views that slide in
+FrameCallback frames[] = { drawFrame1, drawFrame2, drawFrame3, drawFrame4, drawFrame5 };
+
+// how many frames are there?
+int frameCount = 5;
+
+// Overlays are statically drawn on top of a frame eg. a clock
+OverlayCallback overlays[] = { msOverlay };
+int overlaysCount = 1;
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println();
+  Serial.println();
+
+	// The ESP is capable of rendering 60fps in 80Mhz mode
+	// but that won't give you much time for anything else
+	// run it in 160Mhz mode or just set it to 30 fps
+  ui.setTargetFPS(60);
+
+	// Customize the active and inactive symbol
+  ui.setActiveSymbol(activeSymbol);
+  ui.setInactiveSymbol(inactiveSymbol);
+
+  // You can change this to
+  // TOP, LEFT, BOTTOM, RIGHT
+  ui.setIndicatorPosition(BOTTOM);
+
+  // Defines where the first frame is located in the bar.
+  ui.setIndicatorDirection(LEFT_RIGHT);
+
+  // You can change the transition that is used
+  // SLIDE_LEFT, SLIDE_RIGHT, SLIDE_UP, SLIDE_DOWN
+  ui.setFrameAnimation(SLIDE_LEFT);
+
+  // Add frames
+  ui.setFrames(frames, frameCount);
+
+  // Add overlays
+  ui.setOverlays(overlays, overlaysCount);
+
+  // Initialising the UI will init the display too.
+  ui.init();
+
+  display.flipScreenVertically();
+
+}
+
 
 void loop() {
-  r = r % 8;
-  c = micros() % 6;
+  int remainingTimeBudget = ui.update();
 
-  if (r == 0)
-    display.clear();
-
-  display.print("Hello World", r++, c++);
-
-  delay(500);
+  if (remainingTimeBudget > 0) {
+    // You can do some work here
+    // Don't do stuff if you are below your
+    // time budget.
+    delay(remainingTimeBudget);
+  }
 }
