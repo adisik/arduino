@@ -13,7 +13,6 @@ https://github.com/kakopappa/arduino-esp8266-aes-lib
 https://primalcortex.wordpress.com/2016/06/17/esp8266-logging-data-in-a-backend-aes-and-crypto-js/
 https://github.com/kakopappa/arduino-esp8266-aes-encryption-with-nodejs
 
-
 ### Registration of ESP board
 
 Add following to Preferences -> Additional Boards Manager URLs: `http://arduino.esp8266.com/versions/2.3.0/package_esp8266com_index.json` and
