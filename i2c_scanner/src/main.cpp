@@ -1,11 +1,14 @@
+#include <SPI.h> // this needs to be included to fix problem with complilation
 #include <Wire.h>
  
  
 void setup()
 {
-  Wire.begin();
+  //Wire.begin();
+  Wire.begin(D3, D4);
+  //Wire.setClock(100000);
  
-  Serial.begin(115200);
+  Serial.begin(9600);
   while (!Serial);             // Leonardo: wait for serial monitor
   Serial.println("\nI2C Scanner");
 }
